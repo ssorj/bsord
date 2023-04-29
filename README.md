@@ -32,7 +32,8 @@ int main(size_t argc, char** argv) {
     sigaction(SIGILL, &sa, NULL);
     sigaction(SIGSEGV, &sa, NULL);
 
-[...]
+    // ...
+}
 ~~~
 
 ## Result
