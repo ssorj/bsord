@@ -116,20 +116,6 @@ int outer() {
 }
 
 void* run(void* data) {
-    struct sigaction sa = {
-        0,
-        .sa_flags = SA_SIGINFO,
-        .sa_sigaction = crash_handler,
-    };
-
-    sigemptyset(&sa.sa_mask);
-
-    sigaction(SIGABRT, &sa, NULL);
-    sigaction(SIGBUS, &sa, NULL);
-    sigaction(SIGFPE, &sa, NULL);
-    sigaction(SIGILL, &sa, NULL);
-    sigaction(SIGSEGV, &sa, NULL);
-
     int sock = ((thread_context_t*) data)->socket;
     char* buffer = (char*) malloc(BUFFER_SIZE);
 
@@ -170,6 +156,20 @@ egress:
 }
 
 int main(size_t argc, char** argv) {
+    struct sigaction sa = {
+        0,
+        .sa_flags = SA_SIGINFO,
+        .sa_sigaction = crash_handler,
+    };
+
+    sigemptyset(&sa.sa_mask);
+
+    sigaction(SIGABRT, &sa, NULL);
+    sigaction(SIGBUS, &sa, NULL);
+    sigaction(SIGFPE, &sa, NULL);
+    sigaction(SIGILL, &sa, NULL);
+    sigaction(SIGSEGV, &sa, NULL);
+
     int port = 9090;
 
     int server_sock = socket(AF_INET, SOCK_STREAM, 0);

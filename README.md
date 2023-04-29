@@ -1,5 +1,98 @@
 # BSORD
 
+## How it's built
+
+~~~ sh
+gcc server.c -o server -g -O2 -std=c99 -fno-omit-frame-pointer -lunwind
+~~~
+
+## The interesting code
+
+[server.c](server.c)
+
+~~~ c
+#include <libunwind.h>
+
+static inline void print(char* str) {
+    write(STDERR_FILENO, str, strlen(str));
+}
+
+void crash_handler(int signum, siginfo_t *siginfo, void *ucontext) {
+    char field[256] = {0};
+
+    print("-- BSORD START --\n");
+
+    print("Signal: ");
+
+    switch (signum) {
+    case SIGBUS:
+        print("SIGBUS\n");
+        break;
+    case SIGFPE:
+        print("SIGFPE\n");
+        break;
+    case SIGILL:
+        print("SIGILL\n");
+        break;
+    case SIGSEGV:
+        print("SIGSEGV\n");
+        break;
+    default:
+        snprintf(field, sizeof(field) - 1, "%d\n", signum);
+        print(field);
+        break;
+    }
+
+    unw_context_t context;
+    unw_cursor_t cursor;
+
+    unw_getcontext(&context);
+    unw_init_local(&cursor, &context);
+
+    print("Backtrace:\n");
+
+    unw_word_t ip, sp, offset;
+    char buffer[1024] = {0};
+    int i = 0;
+
+    while (unw_step(&cursor) > 0) {
+        unw_get_reg(&cursor, UNW_REG_IP, &ip);
+        unw_get_reg(&cursor, UNW_REG_SP, &sp);
+        unw_get_proc_name(&cursor, field, sizeof(field) - 1, &offset);
+
+        snprintf(buffer, 1024 - 1, "  %2d: ip=0x%016" PRIxPTR " sp=0x%016" PRIxPTR " %s [+0x%" PRIxPTR "]\n", i++, ip, sp, field, offset);
+        print(buffer);
+    }
+
+    print("-- BSORD END --\n");
+
+    exit(1); // XXX Proper error code
+}
+~~~
+
+Setup:
+
+~~~ c
+int main(size_t argc, char** argv) {
+    struct sigaction sa = {
+        0,
+        .sa_flags = SA_SIGINFO,
+        .sa_sigaction = crash_handler,
+    };
+
+    sigemptyset(&sa.sa_mask);
+
+    sigaction(SIGABRT, &sa, NULL);
+    sigaction(SIGBUS, &sa, NULL);
+    sigaction(SIGFPE, &sa, NULL);
+    sigaction(SIGILL, &sa, NULL);
+    sigaction(SIGSEGV, &sa, NULL);
+
+[...]
+~~~
+
+## Result
+
 ~~~
 plano: notice: Starting command 'server'
 plano: notice: Sleeping for 1 second
