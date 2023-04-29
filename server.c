@@ -18,6 +18,7 @@
  */
 
 #define UNW_LOCAL_ONLY
+#define _GNU_SOURCE
 #define _POSIX_C_SOURCE 200112L
 
 #include <errno.h>
@@ -43,31 +44,33 @@ static inline void print(char* str) {
     write(STDERR_FILENO, str, strlen(str));
 }
 
+#define LINE_SIZE 1024
+#define FIELD_SIZE 256
+
 void crash_handler(int signum, siginfo_t *siginfo, void *ucontext) {
-    char field[256] = {0};
+    char line[LINE_SIZE + 1] = {0};
+    char field[FIELD_SIZE + 1] = {0};
 
     print("-- BSORD START --\n");
 
-    print("Signal: ");
+    pthread_t self = pthread_self();
+    pthread_getname_np(self, field, FIELD_SIZE);
+
+    snprintf(line, LINE_SIZE, "Thread: %s\n", field);
+    print(line);
 
     switch (signum) {
-    case SIGBUS:
-        print("SIGBUS\n");
-        break;
-    case SIGFPE:
-        print("SIGFPE\n");
-        break;
-    case SIGILL:
-        print("SIGILL\n");
-        break;
-    case SIGSEGV:
-        print("SIGSEGV\n");
-        break;
+    case SIGBUS: strcpy(field, "SIGBUS"); break;
+    case SIGFPE: strcpy(field, "SIGFPE"); break;
+    case SIGILL: strcpy(field, "SIGILL"); break;
+    case SIGSEGV: strcpy(field, "SIGSEGV"); break;
     default:
-        snprintf(field, sizeof(field) - 1, "%d\n", signum);
-        print(field);
+        snprintf(field, FIELD_SIZE, "%d", signum);
         break;
     }
+
+    snprintf(line, LINE_SIZE, "Signal: %s\n", field);
+    print(line);
 
     unw_context_t context;
     unw_cursor_t cursor;
@@ -78,16 +81,18 @@ void crash_handler(int signum, siginfo_t *siginfo, void *ucontext) {
     print("Backtrace:\n");
 
     unw_word_t ip, sp, offset;
-    char buffer[1024] = {0};
     int i = 0;
 
     while (unw_step(&cursor) > 0) {
         unw_get_reg(&cursor, UNW_REG_IP, &ip);
         unw_get_reg(&cursor, UNW_REG_SP, &sp);
-        unw_get_proc_name(&cursor, field, sizeof(field) - 1, &offset);
+        unw_get_proc_name(&cursor, field, FIELD_SIZE, &offset);
 
-        snprintf(buffer, 1024 - 1, "  %2d: ip=0x%016" PRIxPTR " sp=0x%016" PRIxPTR " %s [+0x%" PRIxPTR "]\n", i++, ip, sp, field, offset);
-        print(buffer);
+        snprintf(line, LINE_SIZE,
+                 "  %2d: ip=0x%016" PRIxPTR " sp=0x%016" PRIxPTR " %s [+0x%" PRIxPTR "]\n",
+                 i++, ip, sp, field, offset);
+
+        print(line);
     }
 
     print("-- BSORD END --\n");
@@ -208,6 +213,7 @@ int main(size_t argc, char** argv) {
         };
 
         pthread_create(thread, NULL, &run, (void*) context);
+        pthread_setname_np(*thread, "worker");
     }
 
 egress:
