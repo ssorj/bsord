@@ -98,7 +98,7 @@ egress:
     return NULL;
 }
 
-int main(size_t argc, char** argv) {
+int main() {
     install_panic_handler();
 
     int port = 9090;
@@ -111,10 +111,9 @@ int main(size_t argc, char** argv) {
     if (err) goto egress;
 
     struct sockaddr_in addr = (struct sockaddr_in) {
-        0,
         .sin_family = AF_INET,
         .sin_addr.s_addr = htonl(INADDR_LOOPBACK),
-        .sin_port = htons(port)
+        .sin_port = htons(port),
     };
 
     err = bind(server_sock, (const struct sockaddr*) &addr, sizeof(addr));

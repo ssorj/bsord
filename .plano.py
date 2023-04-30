@@ -24,7 +24,7 @@ def build():
     check_program("gcc", "I can't find gcc.  Run 'dnf install gcc'.")
 
     run("gcc client.c -o client -g -O2 -std=c99 -fno-omit-frame-pointer")
-    run("gcc server.c -o server -g -O2 -std=c99 -fno-omit-frame-pointer -lunwind")
+    run("gcc server.c panic.c -o server -g -O2 -std=c99 -fno-omit-frame-pointer -lunwind -Wall -Wextra")
 
 @command
 def run_(gdb=False):
@@ -38,6 +38,11 @@ def run_(gdb=False):
         with start("server"):
             sleep(1)
             run("client");
+
+@command
+def inject():
+    copy("panic.h", "~/code/skupper-router/router/src/panic.h")
+    copy("panic.c", "~/code/skupper-router/router/src/panic.c")
 
 @command
 def clean():
