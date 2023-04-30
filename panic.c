@@ -33,7 +33,7 @@
 #define LINE_SIZE 256
 #define FIELD_SIZE 64
 
-static void print(char* str) {
+static void print(char *str) {
     write(STDERR_FILENO, str, strlen(str));
 }
 
