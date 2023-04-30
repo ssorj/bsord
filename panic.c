@@ -166,8 +166,6 @@ static void panic_handler(int signum, siginfo_t *siginfo, void *ucontext) {
     print_backtrace();
 
     print("-- PANIC END --\n");
-
-    fflush(stderr);
 }
 
 void install_panic_handler(void) {
