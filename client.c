@@ -91,7 +91,7 @@ egress:
 
 int main(size_t argc, char** argv) {
     int port = 9090;
-    int jobs = 10;
+    int jobs = 3;
 
     pthread_t sender_threads[jobs];
     pthread_t receiver_threads[jobs];
