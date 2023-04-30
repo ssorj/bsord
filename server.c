@@ -32,6 +32,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <inttypes.h>
+
 #define BUFFER_SIZE 16384
 
 typedef struct thread_context {
@@ -41,14 +43,15 @@ typedef struct thread_context {
 bool visited = false;
 
 __attribute__((noinline))
-void crash() {
+void crash(int info) {
+    (void) info;
     volatile int i = *(int*) 7;
     (void) i;
 }
 
 __attribute__((noinline))
 int inner() {
-    crash();
+    crash(1);
     return 0;
 }
 

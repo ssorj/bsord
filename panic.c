@@ -21,9 +21,9 @@
 #define _GNU_SOURCE
 #define _POSIX_C_SOURCE 200112L
 
-#include <errno.h>
 #include <libunwind.h>
 #include <libunwind-x86_64.h>
+#include <errno.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
@@ -37,7 +37,40 @@ static void print(char *str) {
     write(STDERR_FILENO, str, strlen(str));
 }
 
-static void print_backtrace_x86_64(void) {
+static void print_registers_x86_64(unw_cursor_t *cursor) {
+    char line[LINE_SIZE + 1] = {0};
+    unw_word_t rax, rbx, rcx, rdx, rdi, rsi, rbp, rsp, r8, r9, r10, r11, r12, r13, r14, r15;
+
+    unw_get_reg(cursor, UNW_X86_64_RAX, &rax);
+    unw_get_reg(cursor, UNW_X86_64_RBX, &rbx);
+    unw_get_reg(cursor, UNW_X86_64_RCX, &rcx);
+    unw_get_reg(cursor, UNW_X86_64_RDX, &rdx);
+    unw_get_reg(cursor, UNW_X86_64_RDI, &rdi);
+    unw_get_reg(cursor, UNW_X86_64_RSI, &rsi);
+    unw_get_reg(cursor, UNW_X86_64_RBP, &rbp);
+    unw_get_reg(cursor, UNW_X86_64_RSP, &rsp);
+    unw_get_reg(cursor, UNW_X86_64_R8, &r8);
+    unw_get_reg(cursor, UNW_X86_64_R9, &r9);
+    unw_get_reg(cursor, UNW_X86_64_R10, &r10);
+    unw_get_reg(cursor, UNW_X86_64_R11, &r11);
+    unw_get_reg(cursor, UNW_X86_64_R12, &r12);
+    unw_get_reg(cursor, UNW_X86_64_R13, &r13);
+    unw_get_reg(cursor, UNW_X86_64_R14, &r14);
+    unw_get_reg(cursor, UNW_X86_64_R15, &r15);
+
+    snprintf(line, LINE_SIZE, "      RAX: 0x%016" PRIxPTR "  RDI: 0x%016" PRIxPTR "  R11: 0x%016" PRIxPTR "\n", rax, rdi, r11);
+    print(line);
+    snprintf(line, LINE_SIZE, "      RBX: 0x%016" PRIxPTR "  RBP: 0x%016" PRIxPTR "  R12: 0x%016" PRIxPTR "\n", rbx, rbp, r12);
+    print(line);
+    snprintf(line, LINE_SIZE, "      RCX: 0x%016" PRIxPTR "   R8: 0x%016" PRIxPTR "  R13: 0x%016" PRIxPTR "\n", rcx, r8, r13);
+    print(line);
+    snprintf(line, LINE_SIZE, "      RDX: 0x%016" PRIxPTR "   R9: 0x%016" PRIxPTR "  R14: 0x%016" PRIxPTR "\n", rdx, r9, r14);
+    print(line);
+    snprintf(line, LINE_SIZE, "      RSI: 0x%016" PRIxPTR "  R10: 0x%016" PRIxPTR "  R15: 0x%016" PRIxPTR "\n", rsi, r10, r15);
+    print(line);
+}
+
+static void print_backtrace(void) {
     char line[LINE_SIZE + 1] = {0};
     char field[FIELD_SIZE + 1] = {0};
 
@@ -59,14 +92,6 @@ static void print_backtrace_x86_64(void) {
         return;
     }
 
-    // Advance past the signal handler frame
-    err = unw_step(&cursor);
-
-    if (err < 0) {
-        print("Failed getting backtrace: unw_step\n");
-        return;
-    }
-
     print("Backtrace:\n");
 
     int i = 0;
@@ -83,36 +108,10 @@ static void print_backtrace_x86_64(void) {
         snprintf(line, LINE_SIZE, "  %2d: [0x%016" PRIxPTR "] %s+0x%" PRIxPTR " (0x%016" PRIxPTR ")\n", i, ip, field, offset, sp);
         print(line);
 
-        if (i == 0) {
-            unw_word_t rax, rbx, rcx, rdx, rdi, rsi, rbp, rsp, r8, r9, r10, r11, r12, r13, r14, r15;
-
-            unw_get_reg(&cursor, UNW_X86_64_RAX, &rax);
-            unw_get_reg(&cursor, UNW_X86_64_RBX, &rbx);
-            unw_get_reg(&cursor, UNW_X86_64_RCX, &rcx);
-            unw_get_reg(&cursor, UNW_X86_64_RDX, &rdx);
-            unw_get_reg(&cursor, UNW_X86_64_RDI, &rdi);
-            unw_get_reg(&cursor, UNW_X86_64_RSI, &rsi);
-            unw_get_reg(&cursor, UNW_X86_64_RBP, &rbp);
-            unw_get_reg(&cursor, UNW_X86_64_RSP, &rsp);
-            unw_get_reg(&cursor, UNW_X86_64_R8, &r8);
-            unw_get_reg(&cursor, UNW_X86_64_R9, &r9);
-            unw_get_reg(&cursor, UNW_X86_64_R10, &r10);
-            unw_get_reg(&cursor, UNW_X86_64_R11, &r11);
-            unw_get_reg(&cursor, UNW_X86_64_R12, &r12);
-            unw_get_reg(&cursor, UNW_X86_64_R13, &r13);
-            unw_get_reg(&cursor, UNW_X86_64_R14, &r14);
-            unw_get_reg(&cursor, UNW_X86_64_R15, &r15);
-
-            snprintf(line, LINE_SIZE, "      RAX: 0x%016" PRIxPTR "  RDI: 0x%016" PRIxPTR "  R11: 0x%016" PRIxPTR "\n", rax, rdi, r11);
-            print(line);
-            snprintf(line, LINE_SIZE, "      RBX: 0x%016" PRIxPTR "  RBP: 0x%016" PRIxPTR "  R12: 0x%016" PRIxPTR "\n", rbx, rbp, r12);
-            print(line);
-            snprintf(line, LINE_SIZE, "      RCX: 0x%016" PRIxPTR "   R8: 0x%016" PRIxPTR "  R13: 0x%016" PRIxPTR "\n", rcx, r8, r13);
-            print(line);
-            snprintf(line, LINE_SIZE, "      RDX: 0x%016" PRIxPTR "   R9: 0x%016" PRIxPTR "  R14: 0x%016" PRIxPTR "\n", rdx, r9, r14);
-            print(line);
-            snprintf(line, LINE_SIZE, "      RSI: 0x%016" PRIxPTR "  R10: 0x%016" PRIxPTR "  R15: 0x%016" PRIxPTR "\n", rsi, r10, r15);
-            print(line);
+        if (i < 3) {
+            if (UNW_TARGET_X86_64) {
+                print_registers_x86_64(&cursor);
+            }
         }
 
         i++;
@@ -164,23 +163,16 @@ static void panic_handler(int signum, siginfo_t *siginfo, void *ucontext) {
 
     // Backtrace
 
-    if (UNW_TARGET_X86_64) {
-        print_backtrace_x86_64();
-    }
-
-    // Exit code
-
-    snprintf(line, LINE_SIZE, "Exit code: %d\n", -signum);
-    print(line);
+    print_backtrace();
 
     print("-- PANIC END --\n");
 
-    exit(-signum);
+    fflush(stderr);
 }
 
 void install_panic_handler(void) {
     struct sigaction sa = {
-        .sa_flags = SA_SIGINFO,
+        .sa_flags = SA_SIGINFO | SA_RESETHAND,
         .sa_sigaction = panic_handler,
     };
 
