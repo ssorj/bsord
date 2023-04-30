@@ -1,6 +1,6 @@
 # BSORD
 
-"Blue" screen of router death
+A "blue" screen of router death.
 
 To build it:
 
@@ -12,7 +12,11 @@ The interesting code:
 
 [panic.c](panic.c)
 
-## Example output
+Running the test scenario:
+
+~~~
+$ ./plano run
+~~~
 
 The local test output:
 
