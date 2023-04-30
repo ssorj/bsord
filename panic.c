@@ -72,9 +72,7 @@ static void print_backtrace_x86_64(void) {
         unw_get_reg(&cursor, UNW_REG_SP, &sp);
         unw_get_proc_name(&cursor, field, FIELD_SIZE, &offset);
 
-        snprintf(line, LINE_SIZE,
-                 "  %2d: [0x%016" PRIxPTR "] %s+0x%" PRIxPTR " (0x%016" PRIxPTR ")\n",
-                 i, ip, field, offset, sp);
+        snprintf(line, LINE_SIZE, "  %2d: [0x%016" PRIxPTR "] %s+0x%" PRIxPTR " (0x%016" PRIxPTR ")\n", i, ip, field, offset, sp);
         print(line);
 
         if (i == 0) {
