@@ -63,6 +63,39 @@ Exit code: -4
 -- PANIC END --
 ~~~
 
+Another example from the router:
+
+~~~
+-- PANIC START --
+Signal: 6 (SIGABRT)
+Errno: 11 (EAGAIN)
+Process: 1670789 (skrouterd)
+Thread: 1670798 (wrkr_0)
+Backtrace:
+   0: [0x00007f515268ebec] __pthread_kill_implementation+0x11c (0x00007f5142f19be0)
+      RAX: 0x0000000000000000  RDI: 0x0000000000197e85  R11: 0x0000000000000246
+      RBX: 0x0000000000197e8e  RBP: 0x00007f5142f1b640  R12: 0x0000000000000006
+      RCX: 0x00007f515268ebec   R8: 0x00007f5138133b90  R13: 0x000000000190e7c8
+      RDX: 0x0000000000000006   R9: 0x0000000000000000  R14: 0x00000000018fefc8
+      RSI: 0x0000000000197e8e  R10: 0x0000000000000008  R15: 0x00007f51340b9d08
+   1: [0x00007f515263e956] raise+0x16 (0x00007f5142f19ca0)
+   2: [0x00007f51526287f4] abort+0xcf (0x00007f5142f19cb0)
+   3: [0x000000000042749d] qd_connection_invoke_deferred_impl.part.0.cold+0x5 (0x00007f5142f19df0)
+   4: [0x00000000004adcf8] qd_connection_invoke_deferred.part.0+0x38 (0x00007f5142f19e10)
+   5: [0x00000000004ae5e7] qd_link_q2_restart_receive+0x47 (0x00007f5142f19e30)
+   6: [0x000000000044f386] qdr_tcp_deliver+0x26 (0x00007f5142f19e50)
+   7: [0x000000000049bb18] qdr_link_process_deliveries+0xe8 (0x00007f5142f19ee0)
+   8: [0x0000000000484878] qdr_connection_process+0x388 (0x00007f5142f19f40)
+   9: [0x000000000044f2c9] on_activate+0x39 (0x00007f5142f1a0a0)
+  10: [0x00000000004aec65] qd_timer_visit+0x85 (0x00007f5142f1a0b0)
+  11: [0x00000000004b1b1d] handle+0x3d (0x00007f5142f1a0c0)
+  12: [0x00000000004b2cac] thread_run+0x16c (0x00007f5142f1a250)
+  13: [0x00007f515268cdcd] start_thread+0x2cd (0x00007f5142f1a2a0)
+  14: [0x00007f5152712630] __clone3+0x30 (0x00007f5142f1a340)
+Exit code: -6
+-- PANIC END --
+~~~
+
 ## Notes
 
 * https://crash-utility.github.io/help_pages/bt.html

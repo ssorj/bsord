@@ -30,63 +30,34 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define LINE_SIZE 1024
-#define FIELD_SIZE 256
+#define LINE_SIZE 256
+#define FIELD_SIZE 64
 
 static void print(char* str) {
     write(STDERR_FILENO, str, strlen(str));
 }
 
-static void panic_handler(int signum, siginfo_t *siginfo, void *ucontext) {
-    (void) siginfo;
-    (void) ucontext;
-
+static void print_backtrace_x86_64(void) {
     char line[LINE_SIZE + 1] = {0};
     char field[FIELD_SIZE + 1] = {0};
 
-    print("-- PANIC START --\n");
-
-    // Signal
-
-    switch (signum) {
-    case SIGABRT: strcpy(field, "SIGABRT"); break;
-    case SIGBUS: strcpy(field, "SIGBUS"); break;
-    case SIGFPE: strcpy(field, "SIGFPE"); break;
-    case SIGILL: strcpy(field, "SIGILL"); break;
-    case SIGSEGV: strcpy(field, "SIGSEGV"); break;
-    }
-
-    snprintf(line, LINE_SIZE, "Signal: %d (%s)\n", signum, field);
-    print(line);
-
-    // Errno
-
-    snprintf(line, LINE_SIZE, "Errno: %d (%s)\n", errno, strerrorname_np(errno));
-    print(line);
-
-    // Process
-
-    pid_t pid = getpid();
-
-    snprintf(line, LINE_SIZE, "Process: %d (%s)\n", pid, program_invocation_name);
-    print(line);
-
-    // Thread
-
-    pid_t tid = gettid();
-    pthread_t self = pthread_self();
-    pthread_getname_np(self, field, FIELD_SIZE);
-
-    snprintf(line, LINE_SIZE, "Thread: %d (%s)\n", tid, field);
-    print(line);
-
-    // Backtrace
-
+    int err;
     unw_context_t context;
     unw_cursor_t cursor;
 
-    unw_getcontext(&context);
-    unw_init_local(&cursor, &context);
+    err = unw_getcontext(&context);
+
+    if (err) {
+        print("Failed getting backtrace: unw_getcontext\n");
+        return;
+    }
+
+    err = unw_init_local(&cursor, &context);
+
+    if (err) {
+        print("Failed getting backtrace: unw_init_local");
+        return;
+    }
 
     print("Backtrace:\n");
 
@@ -139,6 +110,56 @@ static void panic_handler(int signum, siginfo_t *siginfo, void *ucontext) {
         }
 
         i++;
+    }
+}
+
+static void panic_handler(int signum, siginfo_t *siginfo, void *ucontext) {
+    (void) siginfo;
+    (void) ucontext;
+
+    char line[LINE_SIZE + 1] = {0};
+    char field[FIELD_SIZE + 1] = {0};
+
+    print("-- PANIC START --\n");
+
+    // Signal
+
+    switch (signum) {
+    case SIGABRT: strcpy(field, "SIGABRT"); break;
+    case SIGBUS: strcpy(field, "SIGBUS"); break;
+    case SIGFPE: strcpy(field, "SIGFPE"); break;
+    case SIGILL: strcpy(field, "SIGILL"); break;
+    case SIGSEGV: strcpy(field, "SIGSEGV"); break;
+    }
+
+    snprintf(line, LINE_SIZE, "Signal: %d (%s)\n", signum, field);
+    print(line);
+
+    // Errno
+
+    snprintf(line, LINE_SIZE, "Errno: %d (%s)\n", errno, strerrorname_np(errno));
+    print(line);
+
+    // Process
+
+    pid_t pid = getpid();
+
+    snprintf(line, LINE_SIZE, "Process: %d (%s)\n", pid, program_invocation_name);
+    print(line);
+
+    // Thread
+
+    pid_t tid = gettid();
+    pthread_t self = pthread_self();
+    pthread_getname_np(self, field, FIELD_SIZE);
+
+    snprintf(line, LINE_SIZE, "Thread: %d (%s)\n", tid, field);
+    print(line);
+
+    // Backtrace
+
+    if (UNW_TARGET_X86_64) {
+        print_backtrace_x86_64();
     }
 
     // Exit code
