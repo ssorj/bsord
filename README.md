@@ -1,6 +1,6 @@
 # BSORD
 
-"Blue" screen of router death.
+"Blue" screen of router death
 
 ## How it's built
 
@@ -62,3 +62,11 @@ Backtrace:
 Exit code: -4
 -- PANIC END --
 ~~~
+
+## Notes
+
+https://github.com/cslarsen/libunwind-examples/blob/master/backtrace.cpp
+https://github.com/libunwind/libunwind
+https://manpages.debian.org/testing/manpages-dev/mprotect.2.en.html
+https://www.hpl.hp.com/hosted/linux/mail-archives/libunwind/2004-March/000245.html
+https://www.nongnu.org/libunwind/docs.html
