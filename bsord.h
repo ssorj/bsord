@@ -42,11 +42,7 @@ static inline void bsord_crash_handler(int signum, siginfo_t *siginfo, void *uco
 
     print("-- BSORD START --\n");
 
-    pthread_t self = pthread_self();
-    pthread_getname_np(self, field, FIELD_SIZE);
-
-    snprintf(line, LINE_SIZE, "Thread: %s\n", field);
-    print(line);
+    // Signal
 
     switch (signum) {
     case SIGABRT: strcpy(field, "SIGABRT"); break;
@@ -61,6 +57,16 @@ static inline void bsord_crash_handler(int signum, siginfo_t *siginfo, void *uco
 
     snprintf(line, LINE_SIZE, "Signal: %s\n", field);
     print(line);
+
+    // Thread
+
+    pthread_t self = pthread_self();
+    pthread_getname_np(self, field, FIELD_SIZE);
+
+    snprintf(line, LINE_SIZE, "Thread: %s\n", field);
+    print(line);
+
+    // Backtrace
 
     unw_context_t context;
     unw_cursor_t cursor;
@@ -123,9 +129,14 @@ static inline void bsord_crash_handler(int signum, siginfo_t *siginfo, void *uco
         i++;
     }
 
+    // Exit code
+
+    snprintf(line, LINE_SIZE, "Exit code: %d\n", -signum);
+    print(line);
+
     print("-- BSORD END --\n");
 
-    exit(1); // XXX Proper error code
+    exit(-signum);
 }
 
 static inline void bsord_install() {
