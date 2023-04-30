@@ -10,7 +10,7 @@ gcc server.c panic.c -o server -g -O2 -std=c99 -fno-omit-frame-pointer -lunwind 
 
 ## The interesting code
 
-[panic.c][panic.c]
+[panic.c](panic.c)
 
 ## Example output
 
