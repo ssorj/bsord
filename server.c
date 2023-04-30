@@ -19,7 +19,7 @@
 
 #define _GNU_SOURCE
 
-#include "bsord.h"
+#include "panic.h"
 
 #include <errno.h>
 #include <netdb.h>
@@ -99,7 +99,7 @@ egress:
 }
 
 int main(size_t argc, char** argv) {
-    bsord_install();
+    install_panic_handler();
 
     int port = 9090;
 
