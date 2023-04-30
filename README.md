@@ -103,6 +103,7 @@ Exit code: -6
 ## Notes
 
 * https://crash-utility.github.io/help_pages/bt.html
+* https://fossies.org/linux/ruby/vm_dump.c
 * https://github.com/cslarsen/libunwind-examples/blob/master/backtrace.cpp
 * https://github.com/libunwind/libunwind
 * https://manpages.debian.org/testing/manpages-dev/mprotect.2.en.html

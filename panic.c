@@ -55,19 +55,27 @@ static void print_backtrace_x86_64(void) {
     err = unw_init_local(&cursor, &context);
 
     if (err) {
-        print("Failed getting backtrace: unw_init_local");
+        print("Failed getting backtrace: unw_init_local\n");
+        return;
+    }
+
+    // Advance past the signal handler frame
+    err = unw_step(&cursor);
+
+    if (err < 0) {
+        print("Failed getting backtrace: unw_step\n");
         return;
     }
 
     print("Backtrace:\n");
 
-    unw_word_t ip, sp, offset;
     int i = 0;
 
-    // Advance past the signal handler frame
-    unw_step(&cursor);
-
     while (unw_step(&cursor) > 0) {
+        unw_word_t ip = {0};
+        unw_word_t sp = {0};
+        unw_word_t offset = {0};
+
         unw_get_reg(&cursor, UNW_REG_IP, &ip);
         unw_get_reg(&cursor, UNW_REG_SP, &sp);
         unw_get_proc_name(&cursor, field, FIELD_SIZE, &offset);
