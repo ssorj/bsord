@@ -23,6 +23,7 @@
 
 #include <errno.h>
 #include <libunwind.h>
+#include <libunwind-x86_64.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
 #include <pthread.h>
@@ -40,12 +41,12 @@ typedef struct thread_context {
     int socket;
 } thread_context_t;
 
+#define LINE_SIZE 1024
+#define FIELD_SIZE 256
+
 static inline void print(char* str) {
     write(STDERR_FILENO, str, strlen(str));
 }
-
-#define LINE_SIZE 1024
-#define FIELD_SIZE 256
 
 void crash_handler(int signum, siginfo_t *siginfo, void *ucontext) {
     char line[LINE_SIZE + 1] = {0};
@@ -60,6 +61,7 @@ void crash_handler(int signum, siginfo_t *siginfo, void *ucontext) {
     print(line);
 
     switch (signum) {
+    case SIGABRT: strcpy(field, "SIGABRT"); break;
     case SIGBUS: strcpy(field, "SIGBUS"); break;
     case SIGFPE: strcpy(field, "SIGFPE"); break;
     case SIGILL: strcpy(field, "SIGILL"); break;
@@ -81,18 +83,57 @@ void crash_handler(int signum, siginfo_t *siginfo, void *ucontext) {
     print("Backtrace:\n");
 
     unw_word_t ip, sp, offset;
-    int i = 0;
+    int i = -1;
 
     while (unw_step(&cursor) > 0) {
+        if (i == -1) {
+            i++;
+            continue;
+        }
+
         unw_get_reg(&cursor, UNW_REG_IP, &ip);
         unw_get_reg(&cursor, UNW_REG_SP, &sp);
         unw_get_proc_name(&cursor, field, FIELD_SIZE, &offset);
 
         snprintf(line, LINE_SIZE,
-                 "  %2d: ip=0x%016" PRIxPTR " sp=0x%016" PRIxPTR " %s [+0x%" PRIxPTR "]\n",
-                 i++, ip, sp, field, offset);
-
+                 "  %2d: [0x%016" PRIxPTR "] %s+0x%" PRIxPTR " (0x%016" PRIxPTR ")\n",
+                 i, ip, field, offset, sp);
         print(line);
+
+        if (i == 0) {
+            unw_word_t rax, rbx, rcx, rdx, rdi, rsi, rbp, rsp;
+            unw_word_t r8, r9, r10, r11, r12, r13, r14, r15;
+
+            unw_get_reg(&cursor, UNW_X86_64_RAX, &rax);
+            unw_get_reg(&cursor, UNW_X86_64_RBX, &rbx);
+            unw_get_reg(&cursor, UNW_X86_64_RCX, &rcx);
+            unw_get_reg(&cursor, UNW_X86_64_RDX, &rdx);
+            unw_get_reg(&cursor, UNW_X86_64_RDI, &rdi);
+            unw_get_reg(&cursor, UNW_X86_64_RSI, &rsi);
+            unw_get_reg(&cursor, UNW_X86_64_RBP, &rbp);
+            unw_get_reg(&cursor, UNW_X86_64_RSP, &rsp);
+            unw_get_reg(&cursor, UNW_X86_64_R8, &r8);
+            unw_get_reg(&cursor, UNW_X86_64_R9, &r9);
+            unw_get_reg(&cursor, UNW_X86_64_R10, &r10);
+            unw_get_reg(&cursor, UNW_X86_64_R11, &r11);
+            unw_get_reg(&cursor, UNW_X86_64_R12, &r12);
+            unw_get_reg(&cursor, UNW_X86_64_R13, &r13);
+            unw_get_reg(&cursor, UNW_X86_64_R14, &r14);
+            unw_get_reg(&cursor, UNW_X86_64_R15, &r15);
+
+            snprintf(line, LINE_SIZE, "      RAX: 0x%016" PRIxPTR "  RDI: 0x%016" PRIxPTR "  R11: 0x%016" PRIxPTR "\n", rax, rdi, r11);
+            print(line);
+            snprintf(line, LINE_SIZE, "      RBX: 0x%016" PRIxPTR "  RBP: 0x%016" PRIxPTR "  R12: 0x%016" PRIxPTR "\n", rbx, rbp, r12);
+            print(line);
+            snprintf(line, LINE_SIZE, "      RCX: 0x%016" PRIxPTR "   R8: 0x%016" PRIxPTR "  R13: 0x%016" PRIxPTR "\n", rcx, r8, r13);
+            print(line);
+            snprintf(line, LINE_SIZE, "      RDX: 0x%016" PRIxPTR "   R9: 0x%016" PRIxPTR "  R14: 0x%016" PRIxPTR "\n", rdx, r9, r14);
+            print(line);
+            snprintf(line, LINE_SIZE, "      RSI: 0x%016" PRIxPTR "  R10: 0x%016" PRIxPTR "  R15: 0x%016" PRIxPTR "\n", rsi, r10, r15);
+            print(line);
+        }
+
+        i++;
     }
 
     print("-- BSORD END --\n");
