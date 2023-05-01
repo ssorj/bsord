@@ -127,8 +127,6 @@ static void print_backtrace(void)
         if (i < 3) {
 #ifdef UNW_TARGET_X86_64
             print_registers_x86_64(&cursor);
-#else
-            ;
 #endif
         }
 
