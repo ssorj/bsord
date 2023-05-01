@@ -42,6 +42,34 @@ typedef struct thread_context {
 
 bool visited = false;
 
+#define MALLOC_SMASH
+
+#ifdef MALLOC_SMASH
+
+__attribute__((noinline))
+void crash(char *ptr) {
+    write(STDERR_FILENO, "crash called\n", 13);
+    memset((void *)ptr, 'E', 4096 * 4);
+    write(STDERR_FILENO, "crash return\n", 13);
+}
+
+__attribute__((noinline))
+int inner() {
+    for (int i = 0; i < 10; i++) {
+        char *my_ptr = malloc(32);
+        crash(my_ptr);
+    }
+    return 0;
+}
+
+__attribute__((noinline))
+int outer() {
+    inner();
+    return 0;
+}
+
+#else
+
 __attribute__((noinline))
 void crash(int info) {
     (void) info;
@@ -60,6 +88,7 @@ int outer() {
     inner();
     return 0;
 }
+#endif
 
 void* run(void* data) {
     int sock = ((thread_context_t*) data)->socket;
