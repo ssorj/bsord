@@ -1,3 +1,6 @@
+#ifndef __panic_h__
+#define __panic_h__ 1
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,3 +21,5 @@
  */
 
 void install_panic_handler(void);
+
+#endif

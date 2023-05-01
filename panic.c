@@ -17,17 +17,23 @@
  * under the License.
  */
 
+// Simulating this for now
+#define __LIBUNWIND__ 1
+
 #define UNW_LOCAL_ONLY
 #define _GNU_SOURCE
 #define _POSIX_C_SOURCE 200112L
 
-#include <libunwind.h>
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef __LIBUNWIND__
+#include <libunwind.h>
+#endif
 
 #define LINE_SIZE 256
 #define FIELD_SIZE 64
@@ -37,6 +43,8 @@ static void print(char *str)
     write(STDERR_FILENO, str, strlen(str));
 }
 
+#ifdef __LIBUNWIND__
+#ifdef UNW_TARGET_X86_64
 static void print_registers_x86_64(unw_cursor_t *cursor)
 {
     char line[LINE_SIZE + 1] = {0};
@@ -70,6 +78,7 @@ static void print_registers_x86_64(unw_cursor_t *cursor)
     snprintf(line, LINE_SIZE, "      RSI: 0x%016" PRIxPTR "  R10: 0x%016" PRIxPTR "  R15: 0x%016" PRIxPTR "\n", rsi, r10, r15);
     print(line);
 }
+#endif // UNW_TARGET_X86_64
 
 static void print_backtrace(void)
 {
@@ -83,18 +92,23 @@ static void print_backtrace(void)
     err = unw_getcontext(&context);
 
     if (err) {
-        print("Failed getting backtrace: unw_getcontext\n");
+        snprintf(line, LINE_SIZE, "  [Failed getting backtrace: unw_getcontext: %d]\n", err);
+        print(line);
         return;
     }
 
     err = unw_init_local(&cursor, &context);
 
     if (err) {
-        print("Failed getting backtrace: unw_init_local\n");
+        snprintf(line, LINE_SIZE, "  [Failed getting backtrace: unw_init_local: %d]\n", err);
+        print(line);
         return;
     }
 
     print("Backtrace:\n");
+
+    // Advance past the sigaction frame
+    unw_step(&cursor);
 
     int i = 0;
 
@@ -110,13 +124,19 @@ static void print_backtrace(void)
         snprintf(line, LINE_SIZE, "  %2d: [0x%016" PRIxPTR "] %s+0x%" PRIxPTR " (0x%016" PRIxPTR ")\n", i, ip, field, offset, sp);
         print(line);
 
-        if (i < 3 && UNW_TARGET_X86_64) {
+        if (i < 3) {
+#ifdef UNW_TARGET_X86_64
             print_registers_x86_64(&cursor);
+#else
+            ;
+#endif
         }
 
         i++;
     }
 }
+
+#endif // __LIBUNWIND__
 
 static void panic_handler(int signum, siginfo_t *siginfo, void *ucontext)
 {
@@ -164,9 +184,14 @@ static void panic_handler(int signum, siginfo_t *siginfo, void *ucontext)
 
     // Backtrace
 
+#ifdef __LIBUNWIND__
     print_backtrace();
+#endif
 
     print("-- PANIC END --\n");
+
+    // This seems to help ensure the trace is fully printed
+    sleep(1);
 }
 
 void install_panic_handler(void)
