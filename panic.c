@@ -33,11 +33,13 @@
 #define LINE_SIZE 256
 #define FIELD_SIZE 64
 
-static void print(char *str) {
+static void print(char *str)
+{
     write(STDERR_FILENO, str, strlen(str));
 }
 
-static void print_registers_x86_64(unw_cursor_t *cursor) {
+static void print_registers_x86_64(unw_cursor_t *cursor)
+{
     char line[LINE_SIZE + 1] = {0};
     unw_word_t rax, rbx, rcx, rdx, rdi, rsi, rbp, rsp, r8, r9, r10, r11, r12, r13, r14, r15;
 
@@ -70,7 +72,8 @@ static void print_registers_x86_64(unw_cursor_t *cursor) {
     print(line);
 }
 
-static void print_backtrace(void) {
+static void print_backtrace(void)
+{
     char line[LINE_SIZE + 1] = {0};
     char field[FIELD_SIZE + 1] = {0};
 
@@ -108,17 +111,16 @@ static void print_backtrace(void) {
         snprintf(line, LINE_SIZE, "  %2d: [0x%016" PRIxPTR "] %s+0x%" PRIxPTR " (0x%016" PRIxPTR ")\n", i, ip, field, offset, sp);
         print(line);
 
-        if (i < 3) {
-            if (UNW_TARGET_X86_64) {
-                print_registers_x86_64(&cursor);
-            }
+        if (i < 3 && UNW_TARGET_X86_64) {
+            print_registers_x86_64(&cursor);
         }
 
         i++;
     }
 }
 
-static void panic_handler(int signum, siginfo_t *siginfo, void *ucontext) {
+static void panic_handler(int signum, siginfo_t *siginfo, void *ucontext)
+{
     (void) siginfo;
     (void) ucontext;
 
@@ -168,7 +170,8 @@ static void panic_handler(int signum, siginfo_t *siginfo, void *ucontext) {
     print("-- PANIC END --\n");
 }
 
-void install_panic_handler(void) {
+void install_panic_handler(void)
+{
     struct sigaction sa = {
         .sa_flags = SA_SIGINFO | SA_RESETHAND,
         .sa_sigaction = panic_handler,
