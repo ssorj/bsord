@@ -41,6 +41,7 @@
 static void print(char *str)
 {
     write(STDERR_FILENO, str, strlen(str));
+    fsync(STDERR_FILENO);
 }
 
 #ifdef __LIBUNWIND__
@@ -119,7 +120,9 @@ static void print_backtrace(void)
 
         unw_get_reg(&cursor, UNW_REG_IP, &ip);
         unw_get_reg(&cursor, UNW_REG_SP, &sp);
+        print("The next line hangs\n");
         unw_get_proc_name(&cursor, field, FIELD_SIZE, &offset);
+        print("This line is never printed\n");
 
         snprintf(line, LINE_SIZE, "  %2d: [0x%016" PRIxPTR "] %s+0x%" PRIxPTR " (0x%016" PRIxPTR ")\n", i, ip, field, offset, sp);
         print(line);
@@ -187,9 +190,6 @@ static void panic_handler(int signum, siginfo_t *siginfo, void *ucontext)
 #endif
 
     print("-- PANIC END --\n");
-
-    // This seems to help ensure the trace is fully printed
-    sleep(1);
 }
 
 void install_panic_handler(void)
