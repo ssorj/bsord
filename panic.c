@@ -22,7 +22,6 @@
 #define _POSIX_C_SOURCE 200112L
 
 #include <libunwind.h>
-#include <libunwind-x86_64.h>
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
