@@ -76,15 +76,15 @@ static void print_registers_x86_64(unw_cursor_t *cursor)
     unw_get_reg(cursor, UNW_X86_64_R14, &r14);
     unw_get_reg(cursor, UNW_X86_64_R15, &r15);
 
-    snprintf(line, LINE_SIZE, "  RAX: 0x%016" PRIxPTR "  RDI: 0x%016" PRIxPTR "  R11: 0x%016" PRIxPTR "\n", rax, rdi, r11);
+    snprintf(line, LINE_SIZE, "    RAX: 0x%016" PRIxPTR "[R] RDI: 0x%016" PRIxPTR "[0] R11: 0x%016" PRIxPTR "\n", rax, rdi, r11);
     print(line);
-    snprintf(line, LINE_SIZE, "  RBX: 0x%016" PRIxPTR "  RBP: 0x%016" PRIxPTR "  R12: 0x%016" PRIxPTR "\n", rbx, rbp, r12);
+    snprintf(line, LINE_SIZE, "    RBX: 0x%016" PRIxPTR "    RBP: 0x%016" PRIxPTR "    R12: 0x%016" PRIxPTR "\n", rbx, rbp, r12);
     print(line);
-    snprintf(line, LINE_SIZE, "  RCX: 0x%016" PRIxPTR "   R8: 0x%016" PRIxPTR "  R13: 0x%016" PRIxPTR "\n", rcx, r8, r13);
+    snprintf(line, LINE_SIZE, "    RCX: 0x%016" PRIxPTR "[3]  R8: 0x%016" PRIxPTR "[4] R13: 0x%016" PRIxPTR "\n", rcx, r8, r13);
     print(line);
-    snprintf(line, LINE_SIZE, "  RDX: 0x%016" PRIxPTR "   R9: 0x%016" PRIxPTR "  R14: 0x%016" PRIxPTR "\n", rdx, r9, r14);
+    snprintf(line, LINE_SIZE, "    RDX: 0x%016" PRIxPTR "[2]  R9: 0x%016" PRIxPTR "[5] R14: 0x%016" PRIxPTR "\n", rdx, r9, r14);
     print(line);
-    snprintf(line, LINE_SIZE, "  RSI: 0x%016" PRIxPTR "  R10: 0x%016" PRIxPTR "  R15: 0x%016" PRIxPTR "\n", rsi, r10, r15);
+    snprintf(line, LINE_SIZE, "    RSI: 0x%016" PRIxPTR "[1] R10: 0x%016" PRIxPTR "    R15: 0x%016" PRIxPTR "\n", rsi, r10, r15);
     print(line);
 }
 #endif // UNW_TARGET_X86_64
@@ -131,7 +131,7 @@ static int print_registers(unw_context_t *context)
 
     print("Registers:\n");
 
-    snprintf(line, LINE_SIZE, "   IP: 0x%016" PRIxPTR "   SP: 0x%016" PRIxPTR "\n", ip, sp);
+    snprintf(line, LINE_SIZE, "     IP: 0x%016" PRIxPTR "     SP: 0x%016" PRIxPTR "\n", ip, sp);
     print(line);
 
 #ifdef UNW_TARGET_X86_64
@@ -141,7 +141,7 @@ static int print_registers(unw_context_t *context)
     return index;
 }
 
-static void print_backtrace(unw_context_t *context, int index)
+static void print_backtrace(unw_context_t *context, int index, char *program_invocation_name)
 {
     char line[LINE_SIZE + 1] = {0};
     unw_cursor_t cursor;
@@ -173,13 +173,13 @@ static void print_backtrace(unw_context_t *context, int index)
         unw_get_reg(&cursor, UNW_REG_IP, &ip);
         unw_get_reg(&cursor, UNW_REG_SP, &sp);
 
-        char flag[4] = {0};
+        char field[FIELD_SIZE + 1] = {0};
 
         if (i == index) {
-            strcpy(flag, " <<");
+            snprintf(field, FIELD_SIZE, " # addr2line -a 0x%" PRIxPTR " -e %s", ip, program_invocation_name);
         }
 
-        snprintf(line, LINE_SIZE, "  %3d: 0x%016" PRIxPTR " (0x%016" PRIxPTR ")%s\n", i, ip, sp, flag);
+        snprintf(line, LINE_SIZE, "  %3d: 0x%016" PRIxPTR " (0x%016" PRIxPTR ")%s\n", i, ip, sp, field);
         print(line);
     }
 }
@@ -247,7 +247,7 @@ static void panic_handler(int signum, siginfo_t *siginfo, void *ucontext)
     // Backtrace
 
     if (index >= 0) {
-        print_backtrace(&context, index);
+        print_backtrace(&context, index, program_invocation_name);
     }
 
 #endif

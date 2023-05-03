@@ -50,13 +50,16 @@ void crash(char *ptr) {
     // write(STDERR_FILENO, "Crash returned\n", 13);
 
     // Invalid pointer
-    (void) ptr;
-    volatile int i = *(int*) 7;
-    (void) i;
+    // (void) ptr;
+    // volatile int i = *(int*) 7;
+    // (void) i;
 
     // Illegal operation
     // (void) ptr;
     // printf("%d\n", 1 / 0);
+
+    (void) ptr;
+    abort();
 }
 
 __attribute__((noinline))
