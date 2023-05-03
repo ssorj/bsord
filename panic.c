@@ -47,7 +47,7 @@ static void print(char *str)
 static void print_libunwind_error(int err)
 {
     char line[LINE_SIZE + 1] = {0};
-    snprintf(line, LINE_SIZE, "ERROR: libunwind: %d\n", err);
+    snprintf(line, LINE_SIZE, "ERROR: libunwind: %s\n", unw_strerror(err));
     print(line);
 }
 
@@ -206,11 +206,6 @@ static void panic_handler(int signum, siginfo_t *siginfo, void *ucontext)
     }
 
     snprintf(line, LINE_SIZE, "Signal: %d (%s)\n", signum, field);
-    print(line);
-
-    // Errno
-
-    snprintf(line, LINE_SIZE, "Errno: %d (%s)\n", errno, strerrorname_np(errno));
     print(line);
 
     // Process
