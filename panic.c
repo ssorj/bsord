@@ -159,6 +159,7 @@ static void print_backtrace(unw_context_t *context, int index, char *program_inv
     unw_word_t sp = {0};
 
     for (int i = 0; i < BACKTRACE_LIMIT; i++) {
+        char field[FIELD_SIZE + 1] = {0};
         int ret = unw_step(&cursor);
 
         if (ret < 0) {
@@ -172,8 +173,6 @@ static void print_backtrace(unw_context_t *context, int index, char *program_inv
 
         unw_get_reg(&cursor, UNW_REG_IP, &ip);
         unw_get_reg(&cursor, UNW_REG_SP, &sp);
-
-        char field[FIELD_SIZE + 1] = {0};
 
         if (i == index) {
             snprintf(field, FIELD_SIZE, " # addr2line -a 0x%" PRIxPTR " -e %s", ip, program_invocation_name);

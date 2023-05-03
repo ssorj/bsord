@@ -45,9 +45,9 @@ bool visited = false;
 __attribute__((noinline))
 void crash(char *ptr) {
     // Heap smash
-    // write(STDERR_FILENO, "Crash called\n", 13);
-    // memset((void *)ptr, 'E', 4096 * 4);
-    // write(STDERR_FILENO, "Crash returned\n", 13);
+    fprintf(stderr, "Crash called\n");
+    memset((void *)ptr, 'E', 4096 * 4);
+    fprintf(stderr, "Crash returned\n");
 
     // Invalid pointer
     // (void) ptr;
@@ -58,22 +58,30 @@ void crash(char *ptr) {
     // (void) ptr;
     // printf("%d\n", 1 / 0);
 
-    (void) ptr;
-    abort();
+    // (void) ptr;
+    // abort();
 }
 
 __attribute__((noinline))
-int inner() {
+int inner(int a, int b, int c, int d, int e, int f) {
+    (void) a;
+    (void) b;
+    (void) c;
+    (void) d;
+    (void) e;
+    (void) f;
+
     for (int i = 0; i < 10; i++) {
         char *my_ptr = malloc(32);
-        crash(my_ptr);
+        memset((void *)my_ptr, 'E', 4096 * 4);
     }
-    return 0;
+
+    return 7;
 }
 
 __attribute__((noinline))
 int outer() {
-    inner();
+    inner(1, 2, 3, 4, 5, 6);
     return 0;
 }
 
