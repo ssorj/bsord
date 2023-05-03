@@ -43,15 +43,28 @@ typedef struct thread_context {
 bool visited = false;
 
 __attribute__((noinline))
-void crash(int info) {
-    (void) info;
+void crash(char *ptr) {
+    // Heap smash
+    // write(STDERR_FILENO, "Crash called\n", 13);
+    // memset((void *)ptr, 'E', 4096 * 4);
+    // write(STDERR_FILENO, "Crash returned\n", 13);
+
+    // Invalid pointer
+    (void) ptr;
     volatile int i = *(int*) 7;
     (void) i;
+
+    // Illegal operation
+    // (void) ptr;
+    // printf("%d\n", 1 / 0);
 }
 
 __attribute__((noinline))
 int inner() {
-    crash(1);
+    for (int i = 0; i < 10; i++) {
+        char *my_ptr = malloc(32);
+        crash(my_ptr);
+    }
     return 0;
 }
 

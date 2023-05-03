@@ -87,6 +87,17 @@ Backtrace:
 -- PANIC END --
 ~~~
 
+## Todo
+
+- Eliminate snprintf usage
+- Get all the registers and exception state (see the glibc approach)
+- Better unwind error handling
+- SA_RESTART | SA_SIGINFO | SA_ONSTACK - What are these?
+- Make sure the "main" frame registers are the ones I really want to display
+  - Or display all the frames' registers?
+- Print addr2line command help
+- Can I get the executable name?
+
 ## Notes
 
 * https://crash-utility.github.io/help_pages/bt.html
@@ -96,3 +107,11 @@ Backtrace:
 * https://manpages.debian.org/testing/manpages-dev/mprotect.2.en.html
 * https://www.hpl.hp.com/hosted/linux/mail-archives/libunwind/2004-March/000245.html
 * https://www.nongnu.org/libunwind/docs.html
+
+* https://lemire.me/blog/2023/05/01/under-linux-libsegfault-and-addr2line-are-underrated/
+* https://www.marcusfolkesson.se/blog/libsegfault/
+* https://sourceware.org/pipermail/glibc-cvs/2022q1/076117.html
+* <https://sourceware.org/git/gitweb.cgi?p=glibc.git;h=65ccd641bacea33be23d51da737c2de7543d0f5e>
+
+* https://github.com/stass/libsegfault/blob/master/libsegfault.c
+* https://github.com/stass/libsegfault/tree/master

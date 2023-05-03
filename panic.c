@@ -37,13 +37,22 @@
 
 #define LINE_SIZE 256
 #define FIELD_SIZE 64
+#define BACKTRACE_LIMIT 64
 
 static void print(char *str)
 {
     write(STDERR_FILENO, str, strlen(str));
 }
 
+static void print_libunwind_error(int err)
+{
+    char line[LINE_SIZE + 1] = {0};
+    snprintf(line, LINE_SIZE, "ERROR: libunwind: %d\n", err);
+    print(line);
+}
+
 #ifdef __LIBUNWIND__
+
 #ifdef UNW_TARGET_X86_64
 static void print_registers_x86_64(unw_cursor_t *cursor)
 {
@@ -67,70 +76,111 @@ static void print_registers_x86_64(unw_cursor_t *cursor)
     unw_get_reg(cursor, UNW_X86_64_R14, &r14);
     unw_get_reg(cursor, UNW_X86_64_R15, &r15);
 
-    snprintf(line, LINE_SIZE, "      RAX: 0x%016" PRIxPTR "  RDI: 0x%016" PRIxPTR "  R11: 0x%016" PRIxPTR "\n", rax, rdi, r11);
+    snprintf(line, LINE_SIZE, "  RAX: 0x%016" PRIxPTR "  RDI: 0x%016" PRIxPTR "  R11: 0x%016" PRIxPTR "\n", rax, rdi, r11);
     print(line);
-    snprintf(line, LINE_SIZE, "      RBX: 0x%016" PRIxPTR "  RBP: 0x%016" PRIxPTR "  R12: 0x%016" PRIxPTR "\n", rbx, rbp, r12);
+    snprintf(line, LINE_SIZE, "  RBX: 0x%016" PRIxPTR "  RBP: 0x%016" PRIxPTR "  R12: 0x%016" PRIxPTR "\n", rbx, rbp, r12);
     print(line);
-    snprintf(line, LINE_SIZE, "      RCX: 0x%016" PRIxPTR "   R8: 0x%016" PRIxPTR "  R13: 0x%016" PRIxPTR "\n", rcx, r8, r13);
+    snprintf(line, LINE_SIZE, "  RCX: 0x%016" PRIxPTR "   R8: 0x%016" PRIxPTR "  R13: 0x%016" PRIxPTR "\n", rcx, r8, r13);
     print(line);
-    snprintf(line, LINE_SIZE, "      RDX: 0x%016" PRIxPTR "   R9: 0x%016" PRIxPTR "  R14: 0x%016" PRIxPTR "\n", rdx, r9, r14);
+    snprintf(line, LINE_SIZE, "  RDX: 0x%016" PRIxPTR "   R9: 0x%016" PRIxPTR "  R14: 0x%016" PRIxPTR "\n", rdx, r9, r14);
     print(line);
-    snprintf(line, LINE_SIZE, "      RSI: 0x%016" PRIxPTR "  R10: 0x%016" PRIxPTR "  R15: 0x%016" PRIxPTR "\n", rsi, r10, r15);
+    snprintf(line, LINE_SIZE, "  RSI: 0x%016" PRIxPTR "  R10: 0x%016" PRIxPTR "  R15: 0x%016" PRIxPTR "\n", rsi, r10, r15);
     print(line);
 }
 #endif // UNW_TARGET_X86_64
 
-static void print_backtrace(void)
+static int print_registers(unw_context_t *context)
 {
     char line[LINE_SIZE + 1] = {0};
-    char field[FIELD_SIZE + 1] = {0};
-
-    int err;
-    unw_context_t context;
     unw_cursor_t cursor;
 
-    err = unw_getcontext(&context);
+    int err = unw_init_local(&cursor, context);
 
     if (err) {
-        snprintf(line, LINE_SIZE, "  [Failed getting backtrace: unw_getcontext: %d]\n", err);
-        print(line);
-        return;
+        print_libunwind_error(err);
+        return -1;
     }
 
-    err = unw_init_local(&cursor, &context);
+    int index;
+    unw_word_t ip = {0};
+    unw_word_t sp = {0};
+
+    for (index = 0; index < BACKTRACE_LIMIT; index++) {
+        int ret = unw_step(&cursor);
+
+        if (ret < 0) {
+            print_libunwind_error(err);
+            return -1;
+        }
+
+        unw_get_reg(&cursor, UNW_REG_IP, &ip);
+        unw_get_reg(&cursor, UNW_REG_SP, &sp);
+
+        if (ip < 0x3fffffffffff) {
+            break;
+        }
+    }
+
+    if (index == BACKTRACE_LIMIT) {
+        // Since we didn't find a likely frame, use the first.
+        unw_init_local(&cursor, context);
+        unw_step(&cursor);
+        unw_get_reg(&cursor, UNW_REG_IP, &ip);
+        unw_get_reg(&cursor, UNW_REG_SP, &sp);
+    }
+
+    print("Registers:\n");
+
+    snprintf(line, LINE_SIZE, "   IP: 0x%016" PRIxPTR "   SP: 0x%016" PRIxPTR "\n", ip, sp);
+    print(line);
+
+#ifdef UNW_TARGET_X86_64
+    print_registers_x86_64(&cursor);
+#endif
+
+    return index;
+}
+
+static void print_backtrace(unw_context_t *context, int index)
+{
+    char line[LINE_SIZE + 1] = {0};
+    unw_cursor_t cursor;
+
+    int err = unw_init_local(&cursor, context);
 
     if (err) {
-        snprintf(line, LINE_SIZE, "  [Failed getting backtrace: unw_init_local: %d]\n", err);
-        print(line);
+        print_libunwind_error(err);
         return;
     }
 
     print("Backtrace:\n");
 
-    // Advance past the sigaction frame
-    unw_step(&cursor);
+    unw_word_t ip = {0};
+    unw_word_t sp = {0};
 
-    int i = 0;
+    for (int i = 0; i < BACKTRACE_LIMIT; i++) {
+        int ret = unw_step(&cursor);
 
-    while (unw_step(&cursor) > 0) {
-        unw_word_t ip = {0};
-        unw_word_t sp = {0};
-        unw_word_t offset = {0};
+        if (ret < 0) {
+            print_libunwind_error(ret);
+            break;
+        }
+
+        if (ret == 0) {
+            break;
+        }
 
         unw_get_reg(&cursor, UNW_REG_IP, &ip);
         unw_get_reg(&cursor, UNW_REG_SP, &sp);
-        unw_get_proc_name(&cursor, field, FIELD_SIZE, &offset);
 
-        snprintf(line, LINE_SIZE, "  %2d: [0x%016" PRIxPTR "] %s+0x%" PRIxPTR " (0x%016" PRIxPTR ")\n", i, ip, field, offset, sp);
-        print(line);
+        char flag[4] = {0};
 
-        if (i < 3) {
-#ifdef UNW_TARGET_X86_64
-            print_registers_x86_64(&cursor);
-#endif
+        if (i == index) {
+            strcpy(flag, " <<");
         }
 
-        i++;
+        snprintf(line, LINE_SIZE, "  %3d: 0x%016" PRIxPTR " (0x%016" PRIxPTR ")%s\n", i, ip, sp, flag);
+        print(line);
     }
 }
 
@@ -180,16 +230,29 @@ static void panic_handler(int signum, siginfo_t *siginfo, void *ucontext)
     snprintf(line, LINE_SIZE, "Thread: %d (%s)\n", tid, field);
     print(line);
 
+#ifdef __LIBUNWIND__
+
+    unw_context_t context;
+    int err = unw_getcontext(&context);
+
+    if (err) {
+        print_libunwind_error(err);
+        return;
+    }
+
+    // Registers
+
+    int index = print_registers(&context);
+
     // Backtrace
 
-#ifdef __LIBUNWIND__
-    print_backtrace();
+    if (index >= 0) {
+        print_backtrace(&context, index);
+    }
+
 #endif
 
     print("-- PANIC END --\n");
-
-    // This seems to help ensure the trace is fully printed
-    sleep(1);
 }
 
 void install_panic_handler(void)
