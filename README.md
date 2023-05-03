@@ -54,7 +54,6 @@ Then I hacked it into the router:
 ~~~
 -- PANIC START --
 Signal: 11 (SIGSEGV)
-Errno: 11 (EAGAIN)
 Process: 1995599 (skrouterd)
 Thread: 1995609 (wrkr_0)
 Registers:
