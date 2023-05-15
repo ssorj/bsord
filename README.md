@@ -79,9 +79,11 @@ Backtrace:
 ## Todo
 
 - Eliminate snprintf usage (?)
-- Get all the registers and exception state (see the glibc approach)
-- Better unwind error handling
-- SA_RESTART | SA_SIGINFO | SA_ONSTACK - What are these?
+- Add the router version
+- More register state?
+
+<!-- Get all the registers and exception state (see the glibc approach) -->
+<!-- - SA_RESTART | SA_SIGINFO | SA_ONSTACK - What are these? -->
 
 ## Notes
 
