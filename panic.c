@@ -101,6 +101,9 @@ static int print_registers(unw_context_t *context)
         return -1;
     }
 
+    // Search for the most recent frame in the router code.  The
+    // heuristic I'm using here is not convincing.
+
     int index;
     unw_word_t ip = {0};
     unw_word_t sp = {0};
@@ -121,8 +124,9 @@ static int print_registers(unw_context_t *context)
         }
     }
 
+    // If we didn't find a likely frame, use the first.
+
     if (index == BACKTRACE_LIMIT) {
-        // Since we didn't find a likely frame, use the first.
         unw_init_local(&cursor, context);
         unw_step(&cursor);
         unw_get_reg(&cursor, UNW_REG_IP, &ip);
